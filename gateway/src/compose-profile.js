@@ -1,7 +1,7 @@
-const { CUSTOMERS_URL, PRODUCTS_URL, SHOPPING_URL } = require('./config');
+const { CUSTOMERS_URL, SHOPPING_URL } = require('./config');
 const { BadGatewayError, UnauthorizedError } = require('./utils/app-errors');
 
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 5000;
 
 async function callService(url, authorization) {
     try {
@@ -47,46 +47,12 @@ async function composeProfile(req, res, next) {
             warnings.push('No se pudieron obtener las ordenes: el microservicio "shopping" no respondio');
         }
 
-        const productIds = [
-            ...new Set(
-                orderList.flatMap((order) => (order.items || []).map((item) => item.productId).filter(Boolean)),
-            ),
-        ];
-
-        const catalog = new Map();
-        if (productIds.length) {
-            const products = await Promise.all(
-                productIds.map((id) => callService(`${PRODUCTS_URL}/products/${id}`, authorization)),
-            );
-
-            products.forEach((result, index) => {
-                if (result.ok && result.data) catalog.set(productIds[index], result.data);
-            });
-
-            if (catalog.size < productIds.length) {
-                warnings.push('Algunos productos no pudieron enriquecerse: el microservicio "products" no respondio');
-            }
-        }
-
-        const enrichedOrders = orderList.map((order) => ({
-            ...order,
-            items: (order.items || []).map((item) => {
-                const current = catalog.get(item.productId);
-
-                return {
-                    ...item,
-                    currentProduct: current
-                        ? {
-                              name: current.name,
-                              price: current.price,
-                              available: current.available,
-                              banner: current.banner,
-                          }
-                        : null,
-                    priceChanged: current ? current.price !== item.price : null,
-                };
-            }),
-        }));
+        const enrichedOrders = orderList;
+        const hasOrderItems = enrichedOrders.some((order) => (order.items || []).length);
+        const productsAvailable = !hasOrderItems || enrichedOrders.some((order) =>
+            order.items.some((item) => item.currentProduct),
+        );
+        if (!productsAvailable) warnings.push('No se pudieron enriquecer las ordenes con el catalogo actual');
 
         return res.json({
             customer: {
@@ -105,7 +71,7 @@ async function composeProfile(req, res, next) {
             sources: {
                 customers: profile.ok,
                 shopping: orders.ok,
-                products: productIds.length ? catalog.size === productIds.length : true,
+                products: productsAvailable,
             },
             ...(warnings.length ? { warnings } : {}),
         });

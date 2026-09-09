@@ -8,8 +8,8 @@ const service = new ShoppingService();
 router.post('/order', UserAuth, async (req, res, next) => {
     try {
         const { _id } = req.user;
-        const { txnId, items, amount } = req.body;
-        const { data } = await service.CreateOrder({ userId: _id, txnId, items, amount });
+        const { txnId, items } = req.body;
+        const { data } = await service.CreateOrder({ userId: _id, txnId, items });
         return res.json(data);
     } catch (err) {
         next(err);

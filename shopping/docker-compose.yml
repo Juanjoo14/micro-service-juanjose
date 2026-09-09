@@ -3,11 +3,14 @@ services:
     container_name: c-shopping
     build: .
     ports:
-      - "8001:8001"
+      - "8003:8003"
     environment:
-      PORT: 8001
+      PORT: 8003
       DB_URL: mongodb://shopping-db:27017/shopping
-      APP_SECRET: dev-secret-change-me
+      APP_SECRET: ${APP_SECRET:?define APP_SECRET in shopping/.env}
+      PRODUCTS_URL: http://host.docker.internal:8002
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
       - /app/node_modules

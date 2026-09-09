@@ -1,9 +1,10 @@
 require('dotenv').config({ quiet: true });
 
 const config = {
-    PORT: process.env.PORT || 8001,
+    PORT: process.env.PORT || 8003,
     DB_URL: process.env.DB_URL,
     APP_SECRET: process.env.APP_SECRET,
+    PRODUCTS_URL: process.env.PRODUCTS_URL,
 };
 
 config.requireVars = (...names) => {

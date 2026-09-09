@@ -33,10 +33,17 @@ class UnauthorizedError extends APIError {
     }
 }
 
+class ServiceUnavailableError extends APIError {
+    constructor(description = 'Service unavailable') {
+        super('ServiceUnavailableError', 503, description);
+    }
+}
+
 module.exports = {
     STATUS_CODES,
     APIError,
     BadRequestError,
     NotFoundError,
     UnauthorizedError,
+    ServiceUnavailableError,
 };

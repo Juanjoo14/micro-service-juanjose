@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce architecture guards
+        shell: bash
+        run: |
+          ! grep -R "cors" customers/src products/src shopping/src
+          ! grep -R "jwt\.sign" products/src shopping/src gateway/src
+          ! grep -R "mongoose" shopping/src/services
+          ! grep -R '"bcryptjs"\|"cors"' products/package.json shopping/package.json
+          test "$(node -e "console.log(Object.keys(require('./products/package.json').dependencies).length)")" = 3
+          test "$(node -e "console.log(Object.keys(require('./customers/package.json').dependencies).length)")" = 5
+          test ! -f docker-compose.yml
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [gateway, customers, products, shopping]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+      - run: npm ci
+      - run: npm test
